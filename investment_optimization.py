@@ -19,6 +19,8 @@ from pyomo.opt import SolverFactory
 import matplotlib 
 import matplotlib.pyplot as plt
 # %%
+weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv', index_col=0, parse_dates = True)
+
 capacityFactors = pd.read_csv('input/renewable_cf2015.csv', index_col=0)
 
 data = pd.read_csv('input/demand2015.csv', index_col=0) #read csv file as dataframe (read documentation for more details)
