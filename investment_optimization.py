@@ -27,39 +27,65 @@ data = pd.read_csv('input/demand2015.csv', index_col=0) #read csv file as datafr
 data = data.set_index(capacityFactors.index)
 
 installedSolarCapacity = 53110 #MW
-installedOnWindCapacity = 54490 #MW
-installedOffWindCapacity = 7740 #MW
-
-#%% Varying the percentage of different RE cost at a time with specific RE share and storage capacity, 4 different 
-# scenarios can be obtained with extra RE installations and new investment cost and % of curtailed power
+installedWindCapacity = 54490 #MW
 
 renewableShareTarget = 0.8 #0.6 for another case
 
-solarCost = 398e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
-windOnshoreCost = 1118e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
-windOffshoreCost = 2128e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
-storageCost = 232e-3 #mln EUR per MWh installed capacity
+# solarCost = 398e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
+# windOnshoreCost = 1118e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
+# windOffshoreCost = 2128e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
+# storageCost = 232e-3 #mln EUR per MWh installed capacity
 
+#Solar
+Area_PV = 0 #m^2 #TODO Values TO_BE_CHECKED
+eff_PV = 0.7 #TODO Values TO_BE_CHECKED
+
+#Wind
+ratedPower_Wind = 0 #MW #TODO Values TO_BE_CHECKED
+
+#Battery
 storageCapacity = 500e3 #in MWh (2000GWh for another cse)
 storagePower = 10.8e3 #in MW (updating w.r.t change in capacity)
 chargingEfficiency = 0.82
 dischargingEfficiency = 0.92
 initialSOC = 0.5 #initial State of Charge (ratio from capacity)
 
-current_investment = (installedSolarCapacity*solarCost + installedOnWindCapacity*windOnshoreCost
- + installedOffWindCapacity*windOffshoreCost +  storageCost*storageCapacity)
+#H2_electrolyzer = Hydrogen storage
+hydrogen_operating_Pmin = 0 #MW #TODO Values TO_BE_CHECKED
+hydrogen_operating_Pmax = 0 #MW #TODO Values TO_BE_CHECKED
+H2_electrolyzer_eff = 0.8 #TODO Values TO_BE_CHECKED
+HHV_H2 = 0 #TODO Values TO_BE_CHECKED
+
+#H2_fuel cell = Hydrogen generation
+hydrogen_powerGen_max = 10 #MW #TODO Values TO_BE_CHECKED
+H2_electrolyzer_eff = 0.8 #TODO Values TO_BE_CHECKED
+LHV_H2 = 0 #TODO Values TO_BE_CHECKED
+
+#Hydrogen_tank
+hydrogen_tank_capacity = 0 #kg #TODO Values TO_BE_CHECKED
+
+# current_investment = (installedSolarCapacity*solarCost + installedOnWindCapacity*windOnshoreCost
+#  + installedOffWindCapacity*windOffshoreCost +  storageCost*storageCapacity)
+
 # %%
-def RenShareTargetOpt(data, capacityFactors):
+def RenGen_MaxOpt(data, capacityFactors):
+
+    #model type: Concrete as the coefficients of the objective function are specified here
     model = pyo.ConcreteModel()
-    
+
+
     model.i = pyo.RangeSet(0, len(data)-1)
-        
-    model.solarCapacity = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
-    model.windOnshoreCapacity = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
-    model.windOffshoreCapacity = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
-    
+
+    #Renewable Generation Variables
+
+    model.solarGen = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
+    model.windGen = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
+
+    model.hydrogenSTOR = pyo.Var(domain=pyo.NonNegativeReals, bounds = (hydrogen_operating_Pmin, hydrogen_operating_Pmax))
+    model.hydrogenGen =pyo.Var(domain=pyo.NonNegativeReals, bounds = (0,hydrogen_powerGen_max))
+
     model.renGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
-    
+
     model.batteryCapacity = pyo.Var(domain=pyo.NonNegativeReals)
     model.SOC = pyo.Var(model.i, domain=pyo.NonNegativeReals)
     model.charge = pyo.Var(model.i, domain=pyo.NonNegativeReals, bounds = (0.0, storagePower))
@@ -70,6 +96,7 @@ def RenShareTargetOpt(data, capacityFactors):
     
     model.investmentCost = pyo.Var(domain=pyo.NonNegativeReals)
     model.curtailment = pyo.Var(model.i, domain=pyo.NonNegativeReals)
+
 
     def renGen_rule(model, i):
         return model.renGen[i] == (model.solarCapacity + installedSolarCapacity) * capacityFactors['solar'].iloc[i] \
@@ -141,7 +168,7 @@ def get_values(model):
 
 # %%
 
-model = RenShareTargetOpt(data, capacityFactors)
+model = RenGen_MaxOpt(data, capacityFactors)
 
 # %%
 renShare, convGen, curtailed, renGen = get_values(model)
