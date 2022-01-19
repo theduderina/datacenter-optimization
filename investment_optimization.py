@@ -21,9 +21,9 @@ import matplotlib.pyplot as plt
 # %%
 weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv', index_col=0, parse_dates = True)
 
-capacityFactors = pd.read_csv('input/renewable_cf2015.csv', index_col=0)
+capacityFactors = pd.read_csv('input/renewable_cf2015.csv', index_col=0, parse_dates= True) # cf from python-lecture_12, also 2019 available
 
-data = pd.read_csv('input/demand2015.csv', index_col=0) #read csv file as dataframe (read documentation for more details)
+data = pd.read_csv('input/demand2015.csv', index_col=0, parse_dates= True) # cf from python-lecture_12, also 2019 available
 data = data.set_index(capacityFactors.index)
 
 installedSolarCapacity = 53110 #MW
