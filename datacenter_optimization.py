@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 
-Student name: Jay Bhavesh Doshi
-Student matriculation number: 4963577
+Student name: Jay Bhavesh Doshi , Anna Lebowsky
+Student matriculation number: 4963577 ,
               
 
 """
@@ -20,35 +20,39 @@ import matplotlib
 import matplotlib.pyplot as plt
 # %%
 weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv', index_col=0, parse_dates = True)
+# TODO Aggregate all wind turbine generation in one-column: wind_gen = wind_1r[kW] + wind_2r[kW] + wind_3r[kW] + wind_4r[kW]
 
 capacityFactors = pd.read_csv('input/renewable_cf2015.csv', index_col=0, parse_dates= True) # cf from python-lecture_12, also 2019 available
 
 data = pd.read_csv('input/demand2015.csv', index_col=0, parse_dates= True) # cf from python-lecture_12, also 2019 available
 data = data.set_index(capacityFactors.index)
 
-installedSolarCapacity = 53110 #MW
-installedWindCapacity = 54490 #MW
+# installedSolarCapacity = 53110 #MW
+# installedWindCapacity = 54490 #MW
 
-renewableShareTarget = 0.8 #0.6 for another case
+renewableShareTarget = 1 #0.6 for another case
 
 # solarCost = 398e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
 # windOnshoreCost = 1118e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
 # windOffshoreCost = 2128e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
 # storageCost = 232e-3 #mln EUR per MWh installed capacity
 
-#Solar
-Area_PV = 0 #m^2 #TODO Values TO_BE_CHECKED
-eff_PV = 0.7 #TODO Values TO_BE_CHECKED
-
-#Wind
-ratedPower_Wind = 0 #MW #TODO Values TO_BE_CHECKED
+# #Solar
+# Area_PV = 0 #m^2 #TODO Values TO_BE_CHECKED
+# eff_PV = 0.7 #TODO Values TO_BE_CHECKED
+#
+# #Wind
+# ratedPower_Wind = 0 #MW #TODO Values TO_BE_CHECKED
 
 #Battery
+self_discharge_rate = 0 #TODO Values TO_BE_CHECKED
 storageCapacity = 500e3 #in MWh (2000GWh for another cse)
 storagePower = 10.8e3 #in MW (updating w.r.t change in capacity)
 chargingEfficiency = 0.82
 dischargingEfficiency = 0.92
 initialSOC = 0.5 #initial State of Charge (ratio from capacity)
+SOCmin = 0 #TODO Values TO_BE_CHECKED
+SOCmax = 0 #TODO Values TO_BE_CHECKED
 
 #H2_electrolyzer = Hydrogen storage
 hydrogen_operating_Pmin = 0 #MW #TODO Values TO_BE_CHECKED
@@ -58,7 +62,7 @@ HHV_H2 = 0 #TODO Values TO_BE_CHECKED
 
 #H2_fuel cell = Hydrogen generation
 hydrogen_powerGen_max = 10 #MW #TODO Values TO_BE_CHECKED
-H2_electrolyzer_eff = 0.8 #TODO Values TO_BE_CHECKED
+H2_fuelcell_eff = 0.8 #TODO Values TO_BE_CHECKED
 LHV_H2 = 0 #TODO Values TO_BE_CHECKED
 
 #Hydrogen_tank
@@ -82,46 +86,49 @@ def RenGen_MaxOpt(data, capacityFactors):
     model.windGen = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
 
     model.hydrogenSTOR = pyo.Var(domain=pyo.NonNegativeReals, bounds = (hydrogen_operating_Pmin, hydrogen_operating_Pmax))
+    model.electrolyzerFlow = pyo.Var(domain=pyo.NonNegativeReals)
     model.hydrogenGen =pyo.Var(domain=pyo.NonNegativeReals, bounds = (0,hydrogen_powerGen_max))
-
+    model.FuelcellFlow = pyo.Var(domain=pyo.NonNegativeReals)
+    model.LOH = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0,hydrogen_tank_capacity))
     model.renGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
 
     model.batteryCapacity = pyo.Var(domain=pyo.NonNegativeReals)
-    model.SOC = pyo.Var(model.i, domain=pyo.NonNegativeReals)
+    model.SOC = pyo.Var(model.i, domain=pyo.NonNegativeReals, bounds = (SOCmin, SOCmax))
     model.charge = pyo.Var(model.i, domain=pyo.NonNegativeReals, bounds = (0.0, storagePower))
     model.discharge = pyo.Var(model.i, domain=pyo.NonNegativeReals, bounds = (0.0, storagePower))
     
     model.conventionalGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
     model.renShare = pyo.Var(model.i, domain=pyo.NonNegativeReals)
-    
-    model.investmentCost = pyo.Var(domain=pyo.NonNegativeReals)
+
     model.curtailment = pyo.Var(model.i, domain=pyo.NonNegativeReals)
 
-
+    # Solar and WInd
     def renGen_rule(model, i):
-        return model.renGen[i] == (model.solarCapacity + installedSolarCapacity) * capacityFactors['solar'].iloc[i] \
-            + (model.windOnshoreCapacity + installedOnWindCapacity) * capacityFactors['onshore'].iloc[i] \
-            + (model.windOffshoreCapacity + installedOffWindCapacity) * capacityFactors['offshore'].iloc[i]
-            
-            
+        return model.renGen[i] == (model.solarGen + (weatherData['PV_gen_real[kW]'].iloc[i]/1000) ) * capacityFactors['solar'].iloc[i] \
+            + (model.windGen + (weatherData['wind_gen[kW]'].iloc[i]/1000)) * capacityFactors['onshore'].iloc[i] \
+
+    #Battery storage
     def SOC_rule(model, i):
         if i == 0:
-            return model.SOC[i] == initialSOC * (storageCapacity + model.batteryCapacity) + model.charge[i] * chargingEfficiency - model.discharge[i] / dischargingEfficiency
+            return model.SOC[i] == initialSOC * (storageCapacity + model.batteryCapacity) * (1 - self_discharge_rate) #+ model.charge[i] * chargingEfficiency - model.discharge[i] / dischargingEfficiency
         else:
-            return model.SOC[i] == model.SOC[i-1] + model.charge[i] * chargingEfficiency - model.discharge[i] / dischargingEfficiency
-               
-    
+            return model.SOC[i] == model.SOC[i-1]*(1 - self_discharge_rate) + model.charge[i-1] * chargingEfficiency - model.discharge[i-1] / dischargingEfficiency
+
+    #Hydrogen Gen
+    def HydrogenElectrolyzer_rule(model, i):
+        return model.hydrogenGen[i] == HHV_H2 * model.electrolyzerFlow[i] / H2_electrolyzer_eff
+    #Hydrogen Stor
+    def HydrogenFuelcell_rule(model, i):
+        return model.hydroSTOR[i] == LHV_H2 * model.FuelcellFlow[i] * H2_fuelcell_eff
+    def HydrogenTank_rule(model, i):
+        return model.LOH[i] == model.LOH[i-1] + model.electrolyzerFlow[i-1] - model.FuelcellFlow[i-1]
+
     def energyBalance_rule(model, i):
-        return data['demand'].iloc[i] + model.curtailment[i] + model.charge[i] == model.conventionalGen[i] + model.renGen[i] + model.discharge[i]
+        return data['demand'].iloc[i] + model.curtailment[i] + model.charge[i] + model.hydroSTOR[i] == model.conventionalGen[i] + model.renGen[i] + model.discharge[i] + model.hydroGEN[i]
     
     
     def renShare_rule(model, i):
         return model.renShare[i] == 1 - model.conventionalGen[i] / data['demand'].iloc[i]
-    
-    
-    def investmentCost_rule(model):
-        return model.investmentCost == solarCost*model.solarCapacity + windOnshoreCost*model.windOnshoreCapacity + windOffshoreCost*model.windOffshoreCapacity \
-            + storageCost*model.batteryCapacity
     
     
     def renShareTarget_rule(model):
@@ -137,12 +144,14 @@ def RenGen_MaxOpt(data, capacityFactors):
     model.SOC_rule = pyo.Constraint(model.i, rule=SOC_rule)
     model.energyBalance_rule = pyo.Constraint(model.i, rule=energyBalance_rule)
     model.renShare_rule = pyo.Constraint(model.i, rule=renShare_rule)
-    model.investmentCost_rule = pyo.Constraint(rule=investmentCost_rule)
     model.renShareTarget_rule = pyo.Constraint(rule=renShareTarget_rule)
     model.batteryCapacity_rule = pyo.Constraint(model.i, rule = batteryCapacity_rule)
-    
+    model.HydrogenElectrolyzer_rule = pyo.Constraint(model.i, rule=HydrogenElectrolyzer_rule)
+    model.HydrogenFuelcell_rule = pyo.Constraint(model.i, rule=HydrogenFuelcell_rule)
+    model.HydrogenTank_rule = pyo.Constraint(model.i, rule=HydrogenTank_rule)
+
     def ObjRule(model):
-        return model.investmentCost
+        return model.renShare_rule
      
     model.obj = pyo.Objective(rule=ObjRule, sense=pyo.minimize)
     
