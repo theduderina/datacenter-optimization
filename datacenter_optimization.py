@@ -2,7 +2,7 @@
 """
 
 Student name: Jay Bhavesh Doshi , Anna Lebowsky
-Student matriculation number: 4963577 ,
+Student matriculation number: 4963577 , 5143788
               
 
 """
@@ -12,20 +12,65 @@ Student matriculation number: 4963577 ,
 #%%
 import numpy as np
 import pandas as pd #import pandas to work with dataframes
+from datetime import datetime
 
 import pyomo.environ as pyo
 from pyomo.opt import SolverFactory
 
 import matplotlib 
 import matplotlib.pyplot as plt
-# %%
+# %% Import weather and demand data
 weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv', index_col=0, parse_dates = True)
 # TODO Aggregate all wind turbine generation in one-column: wind_gen = wind_1r[kW] + wind_2r[kW] + wind_3r[kW] + wind_4r[kW]
 
-capacityFactors = pd.read_csv('input/renewable_cf2015.csv', index_col=0, parse_dates= True) # cf from python-lecture_12, also 2019 available
+def utcfromtimestamp(timestamp):
+    """Construct a naive UTC datetime from a POSIX timestamp.
+    
+    Same as `datetime.utcfromtimestamp` but can also handle str as
+    input.
+    """
+    
+    return datetime.utcfromtimestamp(int(timestamp))
 
-data = pd.read_csv('input/demand2015.csv', index_col=0, parse_dates= True) # cf from python-lecture_12, also 2019 available
-data = data.set_index(capacityFactors.index)
+[f"{i}{j}" for i in "abc" for j in "12"]
+
+l_unit_name = [f"{i}{j}" for i in "abc" for j in "12"]
+
+for i, unit_name in enumerate(l_unit_name):
+    df_temp = pd.read_csv(f"input/hp-s332-{unit_name}.out.gz",
+                          names=["datetime", f"power_{unit_name}"],
+                          converters={0: utcfromtimestamp,
+                                      1: float},
+                          sep='\s+'  # seperator between columns is a space
+                          )
+    # Convert NaN to 0
+    df_temp[f"power_{unit_name}"] = np.nan_to_num(df_temp[f"power_{unit_name}"])
+    
+    # Merge into one dataframe
+    if i == 0:
+        # If the loop just started the first unit `df` does not exists so we 
+        # create this one here
+        df = df_temp
+    else:
+        df = df.merge(df_temp)
+
+# Sum power of all units
+power_cols = [f"power_{i}" for i in l_unit_name]
+df['power'] = df[power_cols].sum(axis=1)
+
+# Resample data for every hour
+df.index = df['datetime']
+df = df.resample('H').mean()
+
+# Select a subset for one year
+start_date = datetime.fromisoformat("2016-01-01")
+end_date = datetime.fromisoformat("2017-01-01")
+
+df_sel = df.loc[(df.index > start_date) & (df.index < end_date)]
+
+plt.plot(df_sel.index[::100], df_sel["power"][::100])
+plt.ylabel("power [W]")
+#%%
 
 # installedSolarCapacity = 53110 #MW
 # installedWindCapacity = 54490 #MW
