@@ -66,10 +66,18 @@ df = df.resample('H').mean()
 start_date = datetime.fromisoformat("2016-01-01")
 end_date = datetime.fromisoformat("2017-01-01")
 
-df_sel = df.loc[(df.index > start_date) & (df.index < end_date)]
+df_2016 = df.loc[(df.index >= start_date) & (df.index < end_date)]
 
-plt.plot(df_sel.index[::100], df_sel["power"][::100])
+start_date = datetime.fromisoformat("2017-01-01")
+end_date = datetime.fromisoformat("2018-01-01")
+
+df_mean = df.loc[(df.index >= start_date) & (df.index < end_date)]
+df_mean['power'] = (df_2016['power'] + df_mean['power'])/2
+
+plt.plot(df_mean.index[::100], df_mean["power"][::100])
 plt.ylabel("power [W]")
+
+
 #%%
 
 # installedSolarCapacity = 53110 #MW
