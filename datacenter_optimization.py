@@ -13,19 +13,21 @@ Student matriculation number: 4963577 , 5143788
 import numpy as np
 import pandas as pd #import pandas to work with dataframes
 from datetime import datetime
+import mpltex # for nice plots
 
 import pyomo.environ as pyo
 from pyomo.opt import SolverFactory
-
-import matplotlib 
+ 
 import matplotlib.pyplot as plt
 # %% Import weather and demand data
-weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv', index_col=0, parse_dates = True)
-# TODO Aggregate all wind turbine generation in one-column: wind_gen = wind_1r[kW] + wind_2r[kW] + wind_3r[kW] + wind_4r[kW]
 
+weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv', index_col=0, parse_dates = True)
+
+# Sum generation of 4 wind turbines
 wind_cols = [f"wind_{i}r[kW]" for i in range(1,5)]
 weatherData['wind_gen'] = weatherData[wind_cols].sum(axis=1)
 
+# Create arrays for wind and pv generation and calculate mean hourly values
 wind = np.array(weatherData["wind_gen"])[:-1]
 pv = np.array(weatherData["PV_gen_real[kW]"])[:-1]
 
@@ -77,18 +79,45 @@ end_date = datetime.fromisoformat("2018-01-01")
 
 df_1617 = df.loc[(df.index >= start_date) & (df.index < end_date)]
 
+# Calculate hourly mean values out of 2016 & 2017
 df_mean = df_1617.groupby([df_1617.index.month, df_1617.index.day, df_1617.index.hour]).mean()
 
 # Create an array of hourly power values and transform W in kW
-power = np.array(df_mean["power"]) / 1000 # * 100 #upscaling factor for demand
+demand = np.array(df_mean["power"]) / 1000 * 50  #upscaling factor for demand, probably different scenarios *50 looks good, *10 too low, *100 too high
 
-plt.plot(power)
-plt.ylabel("power in kW")
+# Plotting power demand from datacenter
+plt.plot(demand)
+plt.ylabel("Power in kW")
+plt.xlabel("Hours")
 plt.show()
 
 # Create a dataframe with wind+pv-generation and datacenter-demand
-GenDem = pd.DataFrame(np.vstack([pv, wind, power]).T, columns=["pv in kW", "wind in kW", "demand in kW"])
+GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T, columns=["pv in kW",
+                                                               "wind in kW", 
+                                                               "demand in kW"])
 
+# Plot pv, wind and datacenter-demand
+@mpltex.acs_decorator
+def plot_gendem():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Renewables Generation and Datacenter Demand')
+
+    ax.plot(GenDem.index, pv, label='PV generation')
+    ax.plot(GenDem.index, wind, label='Wind generation')
+    ax.plot(GenDem.index, demand, label='datacenter demand')
+
+    ax.set_xlabel("Hours")
+    ax.set_ylabel('Power')
+    ax.legend()
+    ax.minorticks_on()
+    ax.set_xlim(0,8748)
+
+    fig.tight_layout()
+    # fig.savefig("output/", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_gendem()
 
 #%%
 
