@@ -23,8 +23,18 @@ import matplotlib.pyplot as plt
 weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv', index_col=0, parse_dates = True)
 # TODO Aggregate all wind turbine generation in one-column: wind_gen = wind_1r[kW] + wind_2r[kW] + wind_3r[kW] + wind_4r[kW]
 
+wind_cols = [f"wind_{i}r[kW]" for i in range(1,5)]
+weatherData['wind_gen'] = weatherData[wind_cols].sum(axis=1)
+
+wind = np.array(weatherData["wind_gen"])[:-1]
+pv = np.array(weatherData["PV_gen_real[kW]"])[:-1]
+
+wind = wind.reshape(len(wind) // 4, 4).mean(axis=1)
+pv = pv.reshape(len(pv) // 4, 4).mean(axis=1)
+
 def utcfromtimestamp(timestamp):
-    """Construct a naive UTC datetime from a POSIX timestamp.
+    """
+    Construct a naive UTC datetime from a POSIX timestamp.
     
     Same as `datetime.utcfromtimestamp` but can also handle str as
     input.
@@ -62,20 +72,22 @@ df['power'] = df[power_cols].sum(axis=1)
 df.index = df['datetime']
 df = df.resample('H').mean()
 
-# Select a subset for one year
 start_date = datetime.fromisoformat("2016-01-01")
-end_date = datetime.fromisoformat("2017-01-01")
-
-df_2016 = df.loc[(df.index >= start_date) & (df.index < end_date)]
-
-start_date = datetime.fromisoformat("2017-01-01")
 end_date = datetime.fromisoformat("2018-01-01")
 
-df_mean = df.loc[(df.index >= start_date) & (df.index < end_date)]
-df_mean['power'] = (df_2016['power'] + df_mean['power'])/2
+df_1617 = df.loc[(df.index >= start_date) & (df.index < end_date)]
 
-plt.plot(df_mean.index[::100], df_mean["power"][::100])
-plt.ylabel("power [W]")
+df_mean = df_1617.groupby([df_1617.index.month, df_1617.index.day, df_1617.index.hour]).mean()
+
+# Create an array of hourly power values and transform W in kW
+power = np.array(df_mean["power"]) / 1000 # * 100 #upscaling factor for demand
+
+plt.plot(power)
+plt.ylabel("power in kW")
+plt.show()
+
+# Create a dataframe with wind+pv-generation and datacenter-demand
+GenDem = pd.DataFrame(np.vstack([pv, wind, power]).T, columns=["pv in kW", "wind in kW", "demand in kW"])
 
 
 #%%
