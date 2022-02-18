@@ -137,7 +137,7 @@ GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T, columns=["pv in kW",
 #
 # #Wind
 # ratedPower_Wind = 0 #MW #TODO Values TO_BE_CHECKED
-n_inverter = 0
+n_inverter = 0.8
 #Battery
 self_discharge_rate = 0.05 #TODO Values TO_BE_CHECKED
 storageCapacity = 20 #in MWh (2000GWh for another cse)
@@ -173,7 +173,7 @@ def RenGen_MaxOpt(GenDem):
     model = pyo.ConcreteModel()
 
 
-    model.i = pyo.RangeSet(0, 10)
+    model.i = pyo.RangeSet(0, len(GenDem)-8000)
 
     #Renewable Generation Variables
 
@@ -189,6 +189,7 @@ def RenGen_MaxOpt(GenDem):
 
     model.renGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
     model.Production = pyo.Var(model.i, domain=pyo.Reals) #Reals or NonNegative ????
+    model.total = pyo.Var(domain=pyo.Reals)
 
     model.batteryCapacity = pyo.Var(domain=pyo.NonNegativeReals)
     model.SOC = pyo.Var(model.i, domain=pyo.NonNegativeReals, bounds = (SOCmin, SOCmax))
@@ -197,6 +198,7 @@ def RenGen_MaxOpt(GenDem):
 
     model.conventionalGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
     model.rf = pyo.Var(domain=pyo.NonNegativeReals, bounds=(0,1))
+    model.renShare = pyo.Var(model.i, domain=pyo.NonNegativeReals)
 
     model.curtailment = pyo.Var(model.i, domain=pyo.NonNegativeReals)
 
@@ -231,14 +233,16 @@ def RenGen_MaxOpt(GenDem):
     def Production_rule(model,i):
         return model.Production[i] == model.renGen[i] + (model.hydrogenSTOR[i] + model.discharge[i])*n_inverter - (model.hydrogenGEN[i] + model.charge[i])*n_inverter
     
-    # def renShare_rule(model, i):
-    #     return model.renShare[i] == 1 - model.conventionalGen[i] / GenDem["demand in kW"].iloc[i]
+    def renShare_rule(model, i):
+         return model.renShare[i] == 1 - model.conventionalGen[i] / GenDem["demand in kW"].iloc[i]
     
     def relax_factor_rule(model, i):
         return model.Production[i] >= (1- model.rf) * GenDem["demand in kW"].iloc[i]/1000
 
-    def Hourly_power_production_rule(model, i): #TODO: Check the summation for whole horizon(with or without i)
-        return sum(model.Production[i] + (model.lammbda)*model.LOH[i] for i in model.i ) # for i in model.i)
+    def Hourly_power_production_rule(model): #TODO: Check the summation for whole horizon(with or without i)
+        for i in model.i:
+            return model.total == model.Production[i] + model.LOH[i] # for i in model.i)  (model.lammbda)*
+
 
     # def renShareTarget_rule(model):
     #     return ((renewableShareTarget-0.001), pyo.summation(model.renShare)/len(data), (renewableShareTarget+0.001))
@@ -251,7 +255,7 @@ def RenGen_MaxOpt(GenDem):
     model.renGen_rule = pyo.Constraint(model.i, rule=renGen_rule)
     model.SOC_rule = pyo.Constraint(model.i, rule=SOC_rule)
     model.energyBalance_rule = pyo.Constraint(model.i, rule=energyBalance_rule)
-    # model.renShare_rule = pyo.Constraint(model.i, rule=renShare_rule)
+    model.renShare_rule = pyo.Constraint(model.i, rule=renShare_rule)
     # model.renShareTarget_rule = pyo.Constraint(rule=renShareTarget_rule)
     model.batteryCapacity_rule = pyo.Constraint(model.i, rule = batteryCapacity_rule)
     model.HydrogenElectrolyzer_rule = pyo.Constraint(model.i, rule=HydrogenElectrolyzer_rule)
@@ -261,42 +265,43 @@ def RenGen_MaxOpt(GenDem):
     model.relax_factor_rule = pyo.Constraint(model.i, rule=relax_factor_rule)
     model.Hourly_power_production_rule = pyo.Constraint(model.i, rule=Hourly_power_production_rule)
     def ObjRule(model):
-        return model.Hourly_power_production_rule
+        return model.total
      
     model.obj = pyo.Objective(rule=ObjRule, sense=pyo.maximize)
     
     opt = SolverFactory("glpk")
-    
+
+
     opt.solve(model)
-    
+
     return model
+
+model = RenGen_MaxOpt(GenDem)
+
+# %%
 
 def get_values(model):
     renShare = []
-    #convGen = []
-    curtailed = []  
+    convGen = []
+    curtailed = []
     renGen = []
     Prod = []
     LoH = []
     Batt = []
-    for i in range(len(demand)):
+    for i in range(len(GenDem)-8500):
         renShare.append(model.renShare[i].value)
         Prod.append(model.Production[i].value)
         LoH.append(model.LOH[i].value)
         Batt.append(model.SOC[i].value)
-        #convGen.append(model.conventionalGen[i].value)
+        convGen.append(model.conventionalGen[i].value)
         curtailed.append(model.curtailment[i].value)
         renGen.append(model.renGen[i].value)
 
-    return renShare, curtailed, renGen, Prod, LoH, Batt
+    return renShare,convGen, curtailed, renGen, Prod, LoH, Batt
 
-# %%
 
-model = RenGen_MaxOpt(GenDem)
+renShare, convGen, curtailed, renGen, Prod, LoH, Batt = get_values(model)
 
-# # %%
-# renShare, convGen, curtailed, renGen = get_values(model)
-#
 # solarProduction = (installedSolarCapacity + model.solarCapacity.value) * capacityFactors['solar']
 # windOffshoreProduction = (installedOffWindCapacity + model.windOffshoreCapacity.value) * capacityFactors['offshore']
 # windOnshoreProduction = (installedOnWindCapacity + model.windOnshoreCapacity.value) * capacityFactors['onshore']
