@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd #import pandas to work with dataframes
 from datetime import datetime
 import mpltex # for nice plots
-
+import math as m
 import pyomo.environ as pyo
 from pyomo.opt import SolverFactory
  
@@ -139,31 +139,29 @@ GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T, columns=["pv in kW",
 # ratedPower_Wind = 0 #MW #TODO Values TO_BE_CHECKED
 n_inverter = 0.8
 #Battery
-self_discharge_rate = 0.05 #TODO Values TO_BE_CHECKED
+self_discharge_rate = 0.002 # derived from 5% in 24h: https://batteryuniversity.com/article/bu-802b-what-does-elevated-self-discharge-do
 storageCapacity = 20 #in MWh (2000GWh for another cse)
-storagePower = 10 #in MW (updating w.r.t change in capacity)
+storagePower = 20 #in MW (updating w.r.t change in capacity)
 chargingEfficiency = 0.82
 dischargingEfficiency = 0.92
-initialSOC = 0.5 #initial State of Charge (ratio from capacity)
-SOCmin = 0.1 #TODO Values TO_BE_CHECKED
-SOCmax = 0.86 #TODO Values TO_BE_CHECKED
+initialSOC = 0.5*storageCapacity #initial State of Charge (ratio from capacity)
+SOCmin = 0.1*storageCapacity #
+SOCmax = 0.86*storageCapacity #
 
 #H2_electrolyzer = Hydrogen storage
-hydrogen_operating_Pmin = 10 #MW #TODO Values TO_BE_CHECKED
-hydrogen_operating_Pmax = 100 #MW #TODO Values TO_BE_CHECKED
-H2_electrolyzer_eff = 0.8 #TODO Values TO_BE_CHECKED
-HHV_H2 = 10 #TODO Values TO_BE_CHECKED
+hydrogen_operating_Pmin = 0 #MW
+hydrogen_operating_Pmax = 5 #MW
+H2_electrolyzer_eff = 0.6 #TODO Values TO_BE_CHECKED
+HHV_H2 = 25.52*10**(6) #for 50000Kg H2 found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
+
 
 #H2_fuel cell = Hydrogen generation
-hydrogen_powerGen_max = 90 #MW #TODO Values TO_BE_CHECKED
-H2_fuelcell_eff = 0.8 #TODO Values TO_BE_CHECKED
-LHV_H2 = 10 #TODO Values TO_BE_CHECKED
+hydrogen_powerGen_max = 5 #MW
+H2_fuelcell_eff = 0.68 #TODO Values TO_BE_CHECKED
+LHV_H2 = 21.6*10**(6)  #for 50000Kg H2 found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
 
 #Hydrogen_tank
-hydrogen_tank_capacity = 10000 #kg #TODO Values TO_BE_CHECKED
-
-# current_investment = (installedSolarCapacity*solarCost + installedOnWindCapacity*windOnshoreCost
-#  + installedOffWindCapacity*windOffshoreCost +  storageCost*storageCapacity)
+hydrogen_tank_capacity = 50000 #kg #TODO Values TO_BE_CHECKED
 
 # %%
 def RenGen_MaxOpt(GenDem):
@@ -172,23 +170,27 @@ def RenGen_MaxOpt(GenDem):
     #model type: Concrete as the coefficients of the objective function are specified here
     model = pyo.ConcreteModel()
 
-
+    # Defining the time-horizon for the model
     model.i = pyo.RangeSet(0, len(GenDem)-8000)
 
-    #Renewable Generation Variables
+ #Model variables for further constraint definitions: for each time step or for total time horizon
 
+#% ------------------------------------------------
+
+        #Renewable Generation Variables
     model.solarGen = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
     model.windGen = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
 
+         #Hydrogn electrolyzer and fuel cell for charging and discharging
     model.hydrogenSTOR = pyo.Var(model.i,domain=pyo.NonNegativeReals, bounds = (hydrogen_operating_Pmin, hydrogen_operating_Pmax))
     model.lammbda = pyo.Var( domain=pyo.NonNegativeReals, bounds=(0,1))
     model.electrolyzerFlow = pyo.Var(model.i,domain=pyo.NonNegativeReals)
     model.hydrogenGEN =pyo.Var(model.i,domain=pyo.NonNegativeReals, bounds = (0,hydrogen_powerGen_max))
     model.FuelcellFlow = pyo.Var(model.i,domain=pyo.NonNegativeReals)
-    model.LOH = pyo.Var(model.i,domain=pyo.NonNegativeReals, bounds = (0,hydrogen_tank_capacity))
+    model.LOH = pyo.Var(model.i,domain=pyo.NonNegativeReals, bounds = (0,hydrogen_tank_capacity)) #level of hydrogen tank
 
     model.renGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
-    model.Production = pyo.Var(model.i, domain=pyo.Reals) #Reals or NonNegative ????
+    model.Production = pyo.Var(model.i, domain=pyo.NonNegativeReals) #Reals or NonNegative ????
     model.total = pyo.Var(domain=pyo.Reals)
 
     model.batteryCapacity = pyo.Var(domain=pyo.NonNegativeReals)
@@ -211,7 +213,7 @@ def RenGen_MaxOpt(GenDem):
     #Battery storage
     def SOC_rule(model, i):
         if i == 0:
-            return model.SOC[i] == initialSOC * (storageCapacity + model.batteryCapacity) * (1 - self_discharge_rate) #+ model.charge[i] * chargingEfficiency - model.discharge[i] / dischargingEfficiency
+            return model.SOC[i] == initialSOC *  (1 - self_discharge_rate) #+ model.charge[i] * chargingEfficiency - model.discharge[i] / dischargingEfficiency
         else:
             return model.SOC[i] == model.SOC[i-1]*(1 - self_discharge_rate) + model.charge[i] * chargingEfficiency - model.discharge[i] / dischargingEfficiency
 
@@ -230,14 +232,14 @@ def RenGen_MaxOpt(GenDem):
     def energyBalance_rule(model, i):
         return GenDem["demand in kW"].iloc[i] + model.curtailment[i] + model.charge[i] + model.hydrogenSTOR[i] == model.conventionalGen[i] + model.renGen[i] + model.discharge[i] + model.hydrogenGEN[i]
 
-    def Production_rule(model,i):
+    def Production_rule(model, i):
         return model.Production[i] == model.renGen[i] + (model.hydrogenSTOR[i] + model.discharge[i])*n_inverter - (model.hydrogenGEN[i] + model.charge[i])*n_inverter
     
     def renShare_rule(model, i):
          return model.renShare[i] == 1 - model.conventionalGen[i] / GenDem["demand in kW"].iloc[i]
     
     def relax_factor_rule(model, i):
-        return model.Production[i] >= (1- model.rf) * GenDem["demand in kW"].iloc[i]/1000
+        return model.Production[i] >= (1 - model.rf) * GenDem["demand in kW"].iloc[i]/1000
 
     def Hourly_power_production_rule(model): #TODO: Check the summation for whole horizon(with or without i)
         for i in model.i:
@@ -264,6 +266,7 @@ def RenGen_MaxOpt(GenDem):
     model.Production_rule = pyo.Constraint(model.i, rule=Production_rule)
     model.relax_factor_rule = pyo.Constraint(model.i, rule=relax_factor_rule)
     model.Hourly_power_production_rule = pyo.Constraint(model.i, rule=Hourly_power_production_rule)
+
     def ObjRule(model):
         return model.total
      
@@ -290,14 +293,14 @@ def get_values(model):
     Batt = []
     for i in range(len(GenDem)-8500):
         renShare.append(model.renShare[i].value)
-        Prod.append(model.Production[i].value)
+        Prod.append(model.total.value)
         LoH.append(model.LOH[i].value)
         Batt.append(model.SOC[i].value)
         convGen.append(model.conventionalGen[i].value)
         curtailed.append(model.curtailment[i].value)
         renGen.append(model.renGen[i].value)
 
-    return renShare,convGen, curtailed, renGen, Prod, LoH, Batt
+    return renShare, convGen, curtailed, renGen, Prod, LoH, Batt
 
 
 renShare, convGen, curtailed, renGen, Prod, LoH, Batt = get_values(model)
