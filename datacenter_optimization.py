@@ -86,10 +86,10 @@ df_mean = df_1617.groupby([df_1617.index.month, df_1617.index.day, df_1617.index
 demand = np.array(df_mean["power"]) / 1000 * 50  #upscaling factor for demand, probably different scenarios *50 looks good, *10 too low, *100 too high
 
 # Plotting power demand from datacenter
-plt.plot(demand)
-plt.ylabel("Power in kW")
-plt.xlabel("Hours")
-plt.show()
+# plt.plot(demand)
+# plt.ylabel("Power in kW")
+# plt.xlabel("Hours")
+# plt.show()
 
 # Create a dataframe with wind+pv-generation and datacenter-demand
 GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T, columns=["pv in kW",
@@ -97,27 +97,27 @@ GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T, columns=["pv in kW",
                                                                "demand in kW"])
 
 #Plot pv, wind and datacenter-demand
-# @mpltex.acs_decorator
-# def plot_gendem():
-#     fig, ax = plt.subplots()
-#
-#     ax.set_title('Renewables Generation and Datacenter Demand')
-#
-#     ax.plot(GenDem.index, pv, label='PV generation')
-#     ax.plot(GenDem.index, wind, label='Wind generation')
-#     ax.plot(GenDem.index, demand, label='datacenter demand')
-#
-#     ax.set_xlabel("Hours")
-#     ax.set_ylabel('Power')
-#     ax.legend()
-#     ax.minorticks_on()
-#     ax.set_xlim(0,8748)
-#
-#     fig.tight_layout()
-#     # fig.savefig("output/", transparent=True, bbox_inches="tight")
-#     fig.show()
-#
-# plot_gendem()
+@mpltex.acs_decorator
+def plot_gendem():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Renewables Generation and Datacenter Demand')
+
+    ax.plot(GenDem.index, pv, label='PV generation')
+    ax.plot(GenDem.index, wind, label='Wind generation')
+    ax.plot(GenDem.index, demand, label='datacenter demand')
+
+    ax.set_xlabel("Hours")
+    ax.set_ylabel('Power')
+    ax.legend()
+    ax.minorticks_on()
+    ax.set_xlim(0,8748)
+
+    fig.tight_layout()
+    fig.savefig("output/gendem.pdf", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_gendem()
 
 #%%
 
@@ -305,6 +305,133 @@ def get_values(model):
 
 renShare, convGen, curtailed, renGen, Prod, LoH, Batt = get_values(model)
 
+#%% Plotting renShare, convGen, curtailed, renGen, Prod, LoH, Batt
+
+@mpltex.acs_decorator
+def plot_renshare():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Renewable Share')
+
+    ax.plot(renShare, marker='o')
+
+    ax.set_xlabel("Hours")
+    ax.set_ylabel('Power')
+  
+    ax.minorticks_on()
+    ax.set_xlim(-10,)
+
+    fig.tight_layout()
+    fig.savefig("output/renshare.pdf", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_renshare()
+
+@mpltex.acs_decorator
+def plot_gen():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Electricity Generation')
+
+    ax.plot(renGen, label='renewable generation') #marker='o'
+    ax.plot(convGen, label='conventional generation', marker='o')
+    ax.plot(Prod, label='Prod')
+
+    ax.set_xlabel("Hours")
+    ax.set_ylabel('Power') # in W?
+    ax.legend()
+    ax.minorticks_on()
+    ax.set_xlim(-10,)
+
+    fig.tight_layout()
+    fig.savefig("output/electricity-generation.pdf", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_gen()
+
+@mpltex.acs_decorator
+def plot_curt():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Curtailed')
+
+    ax.plot(curtailed)
+
+    ax.set_xlabel("Hours")
+    ax.set_ylabel('Power') # in W?
+    ax.legend()
+    ax.minorticks_on()
+    ax.set_xlim(-10,)
+    ax.set_ylim(597000,600100)
+
+    fig.tight_layout()
+    fig.savefig("output/curtailed.pdf", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_curt()
+
+@mpltex.acs_decorator
+def plot_prod():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Production and Renewable Generation')
+
+    ax.plot(Prod, label='Prod')
+    ax.plot(renGen, label='renewable generation') #marker='o
+
+    ax.set_xlabel("Hours")
+    ax.set_ylabel('Power') # in W?
+    ax.legend()
+    ax.minorticks_on()
+    #ax.set_ylim(597000,600100)
+
+    fig.tight_layout()
+    fig.savefig("output/prod.pdf", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_prod()
+
+@mpltex.acs_decorator
+def plot_loh():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Level of Hydrogen Tank')
+
+    ax.plot(LoH)
+
+    ax.set_xlabel("Hours")
+    #ax.set_ylabel('jfg') 
+    ax.legend()
+    ax.minorticks_on()
+    ax.set_xlim(-10,)
+    ax.set_ylim(9999,10010)
+
+    fig.tight_layout()
+    fig.savefig("output/loh.pdf", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_loh()
+
+@mpltex.acs_decorator
+def plot_batt():
+    fig, ax = plt.subplots()
+
+    ax.set_title('Battery')
+
+    ax.plot(Batt)
+
+    ax.set_xlabel("Hours")
+    #ax.set_ylabel('jfg') # in W?
+    ax.legend()
+    ax.minorticks_on()
+    ax.set_xlim(-10,)
+
+    fig.tight_layout()
+    fig.savefig("output/battery.pdf", transparent=True, bbox_inches="tight")
+    fig.show()
+
+plot_batt()
+
 # solarProduction = (installedSolarCapacity + model.solarCapacity.value) * capacityFactors['solar']
 # windOffshoreProduction = (installedOffWindCapacity + model.windOffshoreCapacity.value) * capacityFactors['offshore']
 # windOnshoreProduction = (installedOnWindCapacity + model.windOnshoreCapacity.value) * capacityFactors['onshore']
@@ -323,6 +450,8 @@ renShare, convGen, curtailed, renGen, Prod, LoH, Batt = get_values(model)
 # print("Curtailed: ", round(curtailedPercentage, 2), '%')
 #
 # # %% Plotting the results
+
+#Plot pv, wind and datacenter-demand
 #
 # fig, ax = plt.subplots()
 # labels = ['Solar \n capacity(MW)',
