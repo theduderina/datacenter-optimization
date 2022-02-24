@@ -166,6 +166,10 @@ hydrogen_tank_capacity = 5000  #kg #TODO Values TO_BE_CHECKED
 
 start_time = time.time()
 
+# Defining the time-horizon for the model in weeks
+N_WEEKS = 4
+N_HOURS = N_WEEKS * 7 * 24
+print(f"Time horizon is {N_WEEKS} weeks ({N_HOURS} hours).")
 
 # %%
 def RenGen_MaxOpt(GenDem):
@@ -174,8 +178,7 @@ def RenGen_MaxOpt(GenDem):
     #model type: Concrete as the coefficients of the objective function are specified here
     model = pyo.ConcreteModel()
 
-    # Defining the time-horizon for the model
-    model.i = pyo.RangeSet(0, 8748)
+    model.i = pyo.RangeSet(0, N_HOURS)
 
     #Model variables for further constraint definitions: for each time step or for total time horizon
 
@@ -400,7 +403,7 @@ def get_values(model):
     Batt_charge = []
     Batt_discharge = []
     FuelCell = []
-    for i in range(len(GenDem)):
+    for i in range(N_HOURS):
         renShare.append(model.renShare[i].value)
         Prod.append(model.Production[i].value)
         LoH.append(model.LOH[i].value)

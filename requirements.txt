@@ -2,4 +2,4 @@ matplotlib
 mpltex
 numpy
 pandas
-pyomo
+pyomo==5.7.1
