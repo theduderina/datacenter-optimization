@@ -12,20 +12,22 @@ jobs:
     name: Run the optimization
     runs-on: ubuntu-latest
     steps:
-    # Requirements for plotting with matplotlib
-    - name: Install Linux requirements
-      run: sudo apt install -y texlive-base texlive-fonts-recommended texlive-fonts-extra texlive-science dvipng cm-super
-
     # Checks-out repository under $GITHUB_WORKSPACE,
     # so workflow can access it
     - uses: actions/checkout@v2
+
+    - name: Install plotting requirements
+      run: sudo apt install -y texlive-base texlive-fonts-recommended texlive-fonts-extra texlive-science dvipng cm-super
+
+    - name: Install GLPK
+      run: sudo apt install -y glpk-utils python-glpk
 
     - name: Set up Python
       uses: actions/setup-python@v2.2.2
       with:
         python-version: '3.x'
 
-    - name: Install python requirements
+    - name: Install Python requirements
       run: |
         python -m pip install --upgrade pip wheel
         pip install -r requirements.txt
