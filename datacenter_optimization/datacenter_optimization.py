@@ -452,6 +452,28 @@ renShare, convGen, renGen, Prod, LoH, Batt, Z, Y, X, Electrolyzer, FuelCell, Bat
 #     def Mut_excl_Binary1_rule(model,i):
 #         return model.x[i] + model.y[i] == 1
 
+#%% Calculating the Metrics
+
+demand = np.array(demand[:N_HOURS]) /1000
+
+# Loss of Power Supply Probability (LPSP)
+lpsp = np.sum(np.array(Prod) < demand) / N_HOURS
+print(f"lpsp = {lpsp}")
+
+# Level of Autonomy (LA)
+la = np.sum(np.array(renGen) >= demand) / N_HOURS
+print(f"la = {la}")
+
+# Unused Renewable Energy (URE)
+delta = Prod - demand
+greater_zero = delta > 0
+ure = np.sum(delta * greater_zero) / N_HOURS
+print(f"ure = {ure}")
+
+# Percentage of the Energy Produced to demand (PEP)
+pep = (np.sum(np.minimum(Prod, demand))) / np.sum(demand)
+print(f"pep = {pep}")
+
 
 #%% Plotting renShare, convGen, curtailed, renGen, Prod, LoH, Batt
 plot_FuelCell(FuelCell)
