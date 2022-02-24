@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: [main]
 
- jobs:
+jobs:
   run:
     name: Run the optimization
     runs-on: ubuntu-latest
