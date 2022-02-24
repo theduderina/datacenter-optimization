@@ -1,4 +1,5 @@
 matplotlib
+mpltex
 numpy
 pandas
 pyomo

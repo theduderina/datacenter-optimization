@@ -6,10 +6,11 @@ Plot functions.
 Student name: Jay Bhavesh Doshi , Anna Lebowsky
 Student matriculation number: 4963577 , 5143788
 """
-#import mpltex  # for nice plots
+import mpltex  # for nice plots
 import matplotlib.pyplot as plt
 
 
+@mpltex.acs_decorator
 def plot_gendem(GenDem, pv, wind, demand):
     """Plot pv, wind and datacenter-demand."""
     fig, ax = plt.subplots()
@@ -31,7 +32,7 @@ def plot_gendem(GenDem, pv, wind, demand):
     fig.show()
 
 
-# @mpltex.acs_decorator
+@mpltex.acs_decorator
 def plot_batt_charge(Batt_charge):
     fig, ax = plt.subplots()
 
@@ -50,6 +51,7 @@ def plot_batt_charge(Batt_charge):
     fig.show()
 
 
+@mpltex.acs_decorator
 def plot_batt_discharge(Batt_discharge):
     fig, ax = plt.subplots()
 
@@ -68,7 +70,7 @@ def plot_batt_discharge(Batt_discharge):
     fig.show()
 
 
-# @mpltex.acs_decorator
+@mpltex.acs_decorator
 def plot_gen(GenDem, Prod):
     fig, ax = plt.subplots()
 
@@ -113,7 +115,7 @@ def plot_gen(GenDem, Prod):
 # plot_curt()
 
 
-# @mpltex.acs_decorator
+@mpltex.acs_decorator
 def plot_prod(Prod, renGen):
     fig, ax = plt.subplots()
 
@@ -133,7 +135,7 @@ def plot_prod(Prod, renGen):
     fig.show()
 
 
-# @mpltex.acs_decorator
+@mpltex.acs_decorator
 def plot_loh(LoH):
     fig, ax = plt.subplots()
 
@@ -153,6 +155,7 @@ def plot_loh(LoH):
     fig.show()
 
 
+@mpltex.acs_decorator
 def plot_Electrolyzer(Electrolyzer):
     fig, ax = plt.subplots()
 
@@ -172,6 +175,7 @@ def plot_Electrolyzer(Electrolyzer):
     fig.show()
 
 
+@mpltex.acs_decorator
 def plot_FuelCell(FuelCell):
     fig, ax = plt.subplots()
 
@@ -191,6 +195,7 @@ def plot_FuelCell(FuelCell):
     fig.show()
 
 
+@mpltex.acs_decorator
 def plot_Batt(Batt):
     fig, ax = plt.subplots()
 
@@ -210,6 +215,7 @@ def plot_Batt(Batt):
     fig.show()
 
 
+@mpltex.acs_decorator
 def plot_renshare(renShare):
     fig, ax = plt.subplots()
 
