@@ -1,0 +1,42 @@
+name: Run the optimization
+
+ # Triggered when code is pushed to any branch of repository
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+ jobs:
+  run:
+    name: Run the optimization
+    runs-on: ubuntu-latest
+    steps:
+    # Requirements for plotting with matplotlib
+    - name: Install Linux requirements
+      run: sudo apt install -y texlive-base texlive-fonts-recommended texlive-fonts-extra dvipng cm-super
+
+    # Checks-out repository under $GITHUB_WORKSPACE,
+    # so workflow can access it
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: '3.x'
+
+    - name: Install python requirements
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run the optimization
+      run: python datacenter_optimization/datacenter_optimization.py
+
+    # Upload output
+    - name: Save output
+      if: always() ## Alwaystry to upload data even if code fails somewhere
+      uses: actions/upload-artifact@v2
+      with:
+        name: output
+        path: output
