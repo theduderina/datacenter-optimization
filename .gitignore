@@ -133,3 +133,6 @@ dmypy.json
 
 # Output files
 *.pdf
+
+# MacOS files
+.DS_STORE
