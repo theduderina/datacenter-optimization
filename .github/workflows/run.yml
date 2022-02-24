@@ -20,7 +20,7 @@ jobs:
       run: sudo apt install -y texlive-base texlive-fonts-recommended texlive-fonts-extra texlive-science dvipng cm-super
 
     - name: Install GLPK
-      run: sudo apt install -y glpk-utils python-glpk
+      run: sudo apt install -y glpk-utils
 
     - name: Set up Python
       uses: actions/setup-python@v2.2.2
