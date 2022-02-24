@@ -10,8 +10,9 @@ Student name: Jay Bhavesh Doshi , Anna Lebowsky
 Student matriculation number: 4963577 , 5143788
 """
 #%%
-from datetime import datetime
 import time
+import os
+from datetime import datetime
 
 import numpy as np
 import pandas as pd  # import pandas to work with dataframes
@@ -30,11 +31,11 @@ from plots import (
     plot_Batt,
     plot_renshare
 )
-from utils import utcfromtimestamp
+from utils import INPUT_PATH, utcfromtimestamp
 
 # %% Import weather and demand data
 
-weatherData = pd.read_csv('input/weather-data_wind-pv_Freiburg.csv',
+weatherData = pd.read_csv(os.path.join(INPUT_PATH, "weather-data_wind-pv_Freiburg.csv"),
                           index_col=0,
                           parse_dates=True)
 
@@ -56,7 +57,7 @@ l_unit_name = [f"{i}{j}" for i in "abc" for j in "12"]
 
 for i, unit_name in enumerate(l_unit_name):
     df_temp = pd.read_csv(
-        f"input/hp-s332-{unit_name}.out.gz",
+        os.path.join(INPUT_PATH, f"hp-s332-{unit_name}.out.gz"),
         names=["datetime", f"power_{unit_name}"],
         converters={
             0: utcfromtimestamp,
@@ -107,6 +108,13 @@ demand = np.array(
 # Create a dataframe with wind+pv-generation and datacenter-demand
 GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T,
                       columns=["pv in kW", "wind in kW", "demand in kW"])
+
+# create output folder
+try:
+    os.mkdir("output")
+except OSError:
+    # Ignore error if folder already exists
+    pass
 
 # Plot pv, wind and datacenter-demand
 #@mpltex.acs_decorator

@@ -14,7 +14,7 @@ jobs:
     steps:
     # Requirements for plotting with matplotlib
     - name: Install Linux requirements
-      run: sudo apt install -y texlive-base texlive-fonts-recommended texlive-fonts-extra dvipng cm-super
+      run: sudo apt install -y texlive-base texlive-fonts-recommended texlive-fonts-extra install texlive-science dvipng cm-super
 
     # Checks-out repository under $GITHUB_WORKSPACE,
     # so workflow can access it

@@ -7,6 +7,10 @@ Student name: Jay Bhavesh Doshi , Anna Lebowsky
 Student matriculation number: 4963577 , 5143788
 """
 from datetime import datetime
+from pkg_resources import resource_filename
+
+
+INPUT_PATH = resource_filename(__name__, "../input")
 
 def utcfromtimestamp(timestamp):
     """
