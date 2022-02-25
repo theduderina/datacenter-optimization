@@ -76,7 +76,7 @@ def plot_results(Prod, demand, renGen, Electrolyzer, FuelCell, Batt_charge,
         a.legend(loc="upper right", frameon=True, edgecolor="None")
         a.text(0.0,
                1.0,
-               subplotlabels[i],
+               fr"\textbf{{{subplotlabels[i]}}}",
                transform=a.transAxes + trans,
                va='top',
                bbox=dict(facecolor='white',
