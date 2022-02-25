@@ -22,7 +22,7 @@ def plot_gendem(GenDem, pv, wind, demand):
     ax.plot(GenDem.index, demand, label='datacenter demand')
 
     ax.set_xlabel("Hours")
-    ax.set_ylabel('Power')
+    ax.set_ylabel('Power[kW]')
     ax.legend()
     ax.minorticks_on()
     ax.set_xlim(0, 8748)
@@ -36,18 +36,18 @@ def plot_gendem(GenDem, pv, wind, demand):
 def plot_batt_charge(Batt_charge):
     fig, ax = plt.subplots()
 
-    ax.set_title('batt_charge')
+    ax.set_title('Battery Charging')
 
-    ax.plot(Batt_charge, marker='o', label='Z')
+    ax.plot(Batt_charge, marker='o')
 
     ax.set_xlabel("Hours")
-    ax.set_ylabel('Power')
+    ax.set_ylabel('Power[MW]')
 
     ax.minorticks_on()
     ax.set_xlim(-10, )
 
     fig.tight_layout()
-    #fig.savefig("output/renshare.pdf", transparent=True, bbox_inches="tight")
+    fig.savefig("output/batt_charge.pdf", transparent=True, bbox_inches="tight")
     fig.show()
 
 
@@ -55,18 +55,18 @@ def plot_batt_charge(Batt_charge):
 def plot_batt_discharge(Batt_discharge):
     fig, ax = plt.subplots()
 
-    ax.set_title('batt_discharge')
+    ax.set_title('Battery Discharging')
 
     ax.plot(Batt_discharge, marker='o', label='Z')
 
     ax.set_xlabel("Hours")
-    ax.set_ylabel('Power')
+    ax.set_ylabel('Power[MW]')
 
     ax.minorticks_on()
     ax.set_xlim(-10, )
 
     fig.tight_layout()
-    #fig.savefig("output/renshare.pdf", transparent=True, bbox_inches="tight")
+    fig.savefig("output/batt_discharge.pdf", transparent=True, bbox_inches="tight")
     fig.show()
 
 
@@ -74,14 +74,13 @@ def plot_batt_discharge(Batt_discharge):
 def plot_gen(GenDem, Prod):
     fig, ax = plt.subplots()
 
-    ax.set_title('Electricity Generation')
+    ax.set_title('Electricity Generation v/s Demand')
 
-    ax.plot((GenDem['demand in kW']) / 1000, label='Demand')  #marker='o'
-    #ax.plot(convGen, label='conventional generation', marker='o')
+    ax.plot((GenDem['demand in kW']) / 1000, label='Demand')
     ax.plot(Prod, label='Prod')
 
     ax.set_xlabel("Hours")
-    ax.set_ylabel('Power')  # in W?
+    ax.set_ylabel('Power[MW]')
     ax.legend()
     ax.minorticks_on()
     ax.set_xlim(-10, 300)
@@ -93,27 +92,6 @@ def plot_gen(GenDem, Prod):
     fig.show()
 
 
-# @mpltex.acs_decorator
-# def plot_curt():
-#     fig, ax = plt.subplots()
-#
-#     ax.set_title('Curtailed')
-#
-#     ax.plot(curtailed)
-#
-#     ax.set_xlabel("Hours")
-#     ax.set_ylabel('Power') # in W?
-#     ax.legend()
-#     ax.minorticks_on()
-#     ax.set_xlim(-10,)
-#     ax.set_ylim(597000,600100)
-#
-#     fig.tight_layout()
-#     fig.savefig("output/curtailed.pdf", transparent=True, bbox_inches="tight")
-#     fig.show()
-#
-# plot_curt()
-
 
 @mpltex.acs_decorator
 def plot_prod(Prod, renGen):
@@ -122,10 +100,10 @@ def plot_prod(Prod, renGen):
     ax.set_title('Production and Renewable Generation')
 
     ax.plot(Prod, label='Prod')
-    ax.plot(renGen, label='renewable generation')  #marker='o
+    ax.plot(renGen, label='renewable generation')
 
     ax.set_xlabel("Hours")
-    ax.set_ylabel('Power')  # in W?
+    ax.set_ylabel('Power[MW]')
     ax.legend()
     ax.minorticks_on()
     #ax.set_ylim(597000,600100)
@@ -144,11 +122,10 @@ def plot_loh(LoH):
     ax.plot(LoH)
 
     ax.set_xlabel("Hours")
-    #ax.set_ylabel('jfg')
+    ax.set_ylabel('Level in Kgs')
     ax.legend()
     ax.minorticks_on()
     ax.set_xlim(-10, )
-    #ax.set_ylim(4999,5100)
 
     fig.tight_layout()
     fig.savefig("output/loh.pdf", transparent=True, bbox_inches="tight")
@@ -164,14 +141,14 @@ def plot_Electrolyzer(Electrolyzer):
     ax.plot(Electrolyzer)
 
     ax.set_xlabel("Hours")
-    #ax.set_ylabel('jfg')
+    ax.set_ylabel('Power[MW]')
     ax.legend()
     ax.minorticks_on()
     ax.set_xlim(-10, )
-    #ax.set_ylim(49000,51000)
+
 
     fig.tight_layout()
-    #fig.savefig("output/loh.pdf", transparent=True, bbox_inches="tight")
+    fig.savefig("output/electrolyzer.pdf", transparent=True, bbox_inches="tight")
     fig.show()
 
 
@@ -184,14 +161,13 @@ def plot_FuelCell(FuelCell):
     ax.plot(FuelCell)
 
     ax.set_xlabel("Hours")
-    #ax.set_ylabel('jfg')
+    ax.set_ylabel('Power[MW]')
     ax.legend()
     ax.minorticks_on()
     ax.set_xlim(-10, )
-    #ax.set_ylim(49000,51000)
 
     fig.tight_layout()
-    #fig.savefig("output/loh.pdf", transparent=True, bbox_inches="tight")
+    fig.savefig("output/fuel_cell.pdf", transparent=True, bbox_inches="tight")
     fig.show()
 
 
@@ -204,31 +180,11 @@ def plot_Batt(Batt):
     ax.plot(Batt)
 
     ax.set_xlabel("Hours")
-    #ax.set_ylabel('jfg')
+    ax.set_ylabel('Power[MW]')
     ax.legend()
     ax.minorticks_on()
     ax.set_xlim(-10, )
-    #ax.set_ylim(49000,51000)
 
     fig.tight_layout()
-    #fig.savefig("output/loh.pdf", transparent=True, bbox_inches="tight")
-    fig.show()
-
-
-@mpltex.acs_decorator
-def plot_renshare(renShare):
-    fig, ax = plt.subplots()
-
-    ax.set_title('Renewable Share')
-
-    ax.plot(renShare, marker='o')
-
-    ax.set_xlabel("Hours")
-    ax.set_ylabel('Power')
-
-    ax.minorticks_on()
-    ax.set_xlim(-10, )
-
-    fig.tight_layout()
-    fig.savefig("output/renshare.pdf", transparent=True, bbox_inches="tight")
+    fig.savefig("output/Battery.pdf", transparent=True, bbox_inches="tight")
     fig.show()
