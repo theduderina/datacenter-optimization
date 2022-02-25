@@ -396,6 +396,7 @@ print(f"pep = {pep}")
 
 
 # Plotting results
+
 plot_gendem(pv, wind, demand)
 plot_gen(demand, Prod)
 plot_FuelCell(FuelCell)
