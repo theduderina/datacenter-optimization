@@ -28,8 +28,7 @@ from plots import (
     plot_loh,
     plot_Electrolyzer,
     plot_FuelCell,
-    plot_Batt,
-    plot_renshare
+    plot_Batt
 )
 from utils import INPUT_PATH, utcfromtimestamp
 
@@ -396,9 +395,8 @@ print(f"pep = {pep}")
 
 
 # Plotting results
-
 plot_gendem(pv, wind, demand)
-plot_gen(demand, Prod)
+plot_gen(GenDem, Prod)
 plot_FuelCell(FuelCell)
 plot_Electrolyzer(Electrolyzer)
 plot_batt_charge(Batt_charge)
@@ -406,3 +404,4 @@ plot_batt_discharge(Batt_discharge)
 plot_prod(Prod, renGen)
 plot_loh(LoH)
 plot_Batt(Batt)
+
