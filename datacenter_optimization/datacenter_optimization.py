@@ -110,7 +110,7 @@ SOCmax = 0.9 * storageCapacity  #
 #H2_electrolyzer = Hydrogen storage
 hydrogen_operating_Pmin = 0  #MW
 hydrogen_operating_Pmax = 5  #MW
-H2_electrolyzer_eff = 0.6  #TODO Values TO_BE_CHECKED
+H2_electrolyzer_eff = 0.6
 
 # found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
 HHV_H2 = 197  # MWh/kg for 50000Kg H2 
