@@ -99,12 +99,6 @@ demand = np.array(
     df_mean["power"]
 ) / 1000 * 35  #upscaling factor for demand, probably different scenarios *50 looks good, *10 too low, *100 too high
 
-# Plotting power demand from datacenter
-# plt.plot(demand)
-# plt.ylabel("Power in kW")
-# plt.xlabel("Hours")
-# plt.show()
-
 # Create a dataframe with wind+pv-generation and datacenter-demand
 GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T,
                       columns=["pv in kW", "wind in kW", "demand in kW"])
@@ -117,27 +111,10 @@ except OSError:
     pass
 
 # Plot pv, wind and datacenter-demand
-#@mpltex.acs_decorator
+#@mpltex.acs_decorator #commenting  the tex command to avoid errors in case of unavailabilty of LaTEX language
 plot_gendem(GenDem, pv, wind, demand)
 
-#%%
-
-# installedSolarCapacity = 53110 #MW
-# installedWindCapacity = 54490 #MW
-
-#renewableShareTarget = 1 #0.6 for another case
-
-# solarCost = 398e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
-# windOnshoreCost = 1118e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
-# windOffshoreCost = 2128e-3 #mln EUR per MW installed capacity (varying 20% higher and lower)
-# storageCost = 232e-3 #mln EUR per MWh installed capacity
-
-# #Solar
-# Area_PV = 0 #m^2 #TODO Values TO_BE_CHECKED
-# eff_PV = 0.7 #TODO Values TO_BE_CHECKED
-#
-# #Wind
-# ratedPower_Wind = 0 #MW #TODO Values TO_BE_CHECKED
+#-------------------- Defining technology sizing, efficiency, and boundary parameters------------------------------------------
 n_inverter = 0.8
 #Battery
 self_discharge_rate = 0.002  # derived from 5% in 24h: https://batteryuniversity.com/article/bu-802b-what-does-elevated-self-discharge-do
@@ -157,13 +134,16 @@ HHV_H2 = 197  #MWh/kg for 50000Kg H2 found on https://h2tools.org/hyarc/calculat
 
 #H2_fuel cell = Hydrogen generation
 hydrogen_powerGen_max = 5  #MW
-H2_fuelcell_eff = 0.68  #TODO Values TO_BE_CHECKED
+H2_fuelcell_eff = 0.68
 LHV_H2 = 167  #MWh/kg for 50000Kg H2 found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
 
-rf = 0.85
-#Hydrogen_tank
-hydrogen_tank_capacity = 5000  #kg #TODO Values TO_BE_CHECKED
+#Hydrogen tank
+hydrogen_tank_capacity = 5000  #kg
 
+# relax factor for achieving 85% of demand
+rf = 0.85
+#----------------------Initiating for defining time-horizon--------------------------------------------------------------------
+# for calculating the time for running the model for specific time-horizon
 start_time = time.time()
 
 # Defining the time-horizon for the model in weeks
@@ -171,44 +151,41 @@ N_WEEKS = 4
 N_HOURS = N_WEEKS * 7 * 24
 print(f"Time horizon is {N_WEEKS} weeks ({N_HOURS} hours).")
 
-# %%
+# ------------------------------Defining Optimization function------------------------------------------------------------------
 def RenGen_MaxOpt(GenDem):
-    #, pv, wind, demand
 
     #model type: Concrete as the coefficients of the objective function are specified here
     model = pyo.ConcreteModel()
 
+    #Defining model time-horizon's starting and end-point
     model.i = pyo.RangeSet(0, N_HOURS)
 
     #Model variables for further constraint definitions: for each time step or for total time horizon
-
-    #% ------------------------------------------------
-
-    #Renewable Generation Variables
-    #model.solarGen = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
-    #model.windGen = pyo.Var(domain=pyo.NonNegativeReals, bounds = (0.0, 300e3))
 
     #Hydrogn electrolyzer and fuel cell for charging and discharging
     model.hydrogenSTOR = pyo.Var(model.i,
                                  domain=pyo.NonNegativeReals,
                                  bounds=(hydrogen_operating_Pmin,
                                          hydrogen_operating_Pmax))
-    # model.lammbda = pyo.Var( domain=pyo.NonNegativeReals, bounds=(0,1))
     model.electrolyzerFlow = pyo.Var(model.i, domain=pyo.NonNegativeReals)
     model.hydrogenGEN = pyo.Var(model.i,
                                 domain=pyo.NonNegativeReals,
                                 bounds=(0, hydrogen_powerGen_max))
-    model.FuelcellFlow = pyo.Var(model.i, domain=pyo.NonNegativeReals)
+    model.FuelcellFlow = pyo.Var(model.i, domain=pyo.NonNegativeReals) #in Kgs
     model.LOH = pyo.Var(
         model.i,
         domain=pyo.NonNegativeReals,
         bounds=(0, hydrogen_tank_capacity))  #level of hydrogen tank
 
+
     model.renGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
     model.Production = pyo.Var(
-        model.i, domain=pyo.NonNegativeReals)  #Reals or NonNegative ????
+        model.i, domain=pyo.NonNegativeReals)
+
+    #optimization variable
     model.total = pyo.Var(domain=pyo.Reals)
 
+    #Battery storage variables
     model.batteryCapacity = pyo.Var(domain=pyo.NonNegativeReals)
     model.SOC = pyo.Var(model.i,
                         domain=pyo.NonNegativeReals,
@@ -220,42 +197,40 @@ def RenGen_MaxOpt(GenDem):
                               domain=pyo.NonNegativeReals,
                               bounds=(0.0, storagePower))
 
-    model.conventionalGen = pyo.Var(model.i, domain=pyo.NonNegativeReals)
-    # model.rf = pyo.Var(domain=pyo.NonNegativeReals, bounds=(0,1))
-    model.renShare = pyo.Var(model.i, domain=pyo.NonNegativeReals)
-
+    #Binary variables
     model.x = pyo.Var(model.i, domain=pyo.NonNegativeIntegers, bounds=(0, 1))
     model.y = pyo.Var(model.i, domain=pyo.NonNegativeIntegers, bounds=(0, 1))
     model.z = pyo.Var(model.i, domain=pyo.NonNegativeIntegers, bounds=(0, 1))
 
-    # Solar and WInd
+    # Solar and Wind Generation
     def renGen_rule(model, i):
         return model.renGen[i] == ((GenDem["pv in kW"].iloc[i] / 1000) +
                                    ((GenDem["wind in kW"].iloc[i] / 1000))
-                                   )  #* capacityFactors['solar'].iloc[i] \
+                                   )
 
-    #Battery storage
+    # Battery storage capacity maintainance
     def SOC_rule(model, i):
         if i == 0:
             return model.SOC[i] == initialSOC * (
                 1 - self_discharge_rate
-            )  #+ model.charge[i] * chargingEfficiency - model.discharge[i] / dischargingEfficiency
+            )
         else:
             return model.SOC[i] == model.SOC[i - 1] * (
                 1 - self_discharge_rate
             ) + model.charge[i - 1] * chargingEfficiency - model.discharge[
                 i - 1] / dischargingEfficiency
 
-    #Hydrogen Stor
+    # Hydrogen Storage
     def HydrogenElectrolyzer_rule(model, i):
         return model.hydrogenSTOR[
             i] == HHV_H2 * model.electrolyzerFlow[i] / H2_electrolyzer_eff
 
-    #Hydrogen Gen
+    # Hydrogen Generation
     def HydrogenFuelcell_rule(model, i):
         return model.hydrogenGEN[
             i] == LHV_H2 * model.FuelcellFlow[i] * H2_fuelcell_eff
 
+    # Hydrogen tank capacity maintainance
     def HydrogenTank_rule(model, i):
         if i == 0:
             return model.LOH[i] == hydrogen_tank_capacity
@@ -263,25 +238,23 @@ def RenGen_MaxOpt(GenDem):
             return model.LOH[i] == model.LOH[i - 1] + model.electrolyzerFlow[
                 i - 1] - model.FuelcellFlow[i - 1]
 
+    # Cummulating renewable generation with storage discharging and charging
     def Production_rule(model, i):
         return model.Production[i] <= model.renGen[i] + (
             model.hydrogenGEN[i] + model.discharge[i]) * n_inverter - (
                 model.hydrogenSTOR[i] + model.charge[i]) * n_inverter
 
-    def renShare_rule(model, i):
-        return model.renShare[i] == model.Production[i] / (
-            GenDem["demand in kW"].iloc[i] / 1000)
-
+    # Achieving atleast predefined relax facor
     def relax_factor_rule(model, i):
         return model.Production[i] >= rf * GenDem["demand in kW"].iloc[i] / 1000
 
-    def Hourly_power_production_rule(
-        model
-    ):  #TODO: Check the summation for whole horizon(with or without i)
+    # Objective function to maintain production with Level of hydrogen
+    def Hourly_power_production_rule(model):
         for i in model.i:
-            return model.total == model.Production[i] + model.LOH[
-                i]  # for i in model.i)  (model.lammbda)*
+            return model.total == model.Production[i] + model.LOH[i]
 
+    # Binary logics for mutually exclusive events: Battery and hydrogen discharge should
+    # only suffice demand and not charge each other
     def Mut_excl_Battcharge_rule(model, i):
         return model.charge[i] <= model.x[i] * storagePower
 
@@ -309,36 +282,18 @@ def RenGen_MaxOpt(GenDem):
         return model.FuelcellFlow[i] <= (1 -
                                          model.z[i]) * hydrogen_tank_capacity
 
-    # def mut_h2tobatt_rule(model,i):
-    #     if i == 0:
-    #         return
-    #     if i != 0:
-    #         if model.z[i] == 0 or model.y[i] == 0:
-    #             return model.x[i] == 0
-    #         if model.x[i] == 0:
-    #             return model.y[i] == 0
-
     def Mut_excl_Binary1_rule(model, i):
         return model.x[i] + model.y[i] == 1
 
     def Mut_excl_Binary2_rule(model, i):
         return model.x[i] + model.z[i] == 1
 
-    # def renShareTarget_rule(model):
-    #     return ((renewableShareTarget-0.001), pyo.summation(model.renShare)/len(data), (renewableShareTarget+0.001))
-
-    # def batteryCapacity_rule(model, i):
-    #     return model.SOC[i] <= model.batteryCapacity + storageCapacity
-
-    #model.energyBalance_rule = pyo.Constraint(model.i, rule=energyBalance_rule)
+    # CONVERTING DEFINED FUNCTIONS INTO CONSTRAINTS
     model.renGen_rule = pyo.Constraint(model.i, rule=renGen_rule)
     model.Production_rule = pyo.Constraint(model.i, rule=Production_rule)
     model.SOC_rule = pyo.Constraint(model.i, rule=SOC_rule)
-    model.renShare_rule = pyo.Constraint(model.i, rule=renShare_rule)
-    # model.renShareTarget_rule = pyo.Constraint(rule=renShareTarget_rule)
-    #model.batteryCapacity_rule = pyo.Constraint(model.i, rule = batteryCapacity_rule)
-    model.HydrogenElectrolyzer_rule = pyo.Constraint(
-        model.i, rule=HydrogenElectrolyzer_rule)
+    model.HydrogenElectrolyzer_rule = pyo.Constraint(model.i,
+                                                rule=HydrogenElectrolyzer_rule)
     model.HydrogenFuelcell_rule = pyo.Constraint(model.i,
                                                  rule=HydrogenFuelcell_rule)
     model.HydrogenTank_rule = pyo.Constraint(model.i, rule=HydrogenTank_rule)
@@ -368,8 +323,7 @@ def RenGen_MaxOpt(GenDem):
     model.Mut_excl_H2_Genmax_rule = pyo.Constraint(
         model.i, rule=Mut_excl_H2_Genmax_rule)
 
-    # model.mut_h2tobatt_rule = pyo.Constraint(model.i, rule=mut_h2tobatt_rule)
-
+    # Objective function of the maximization problem
     def ObjRule(model):
         return model.total
 
@@ -382,16 +336,15 @@ def RenGen_MaxOpt(GenDem):
     return model
 
 
+# ------------------------------Running Optimization function with PV, Wind and demand data----------------------------------------
 model = RenGen_MaxOpt(GenDem)
 
+# Printing model run time
 print("--%s mins--" % (time.time() - start_time))
-# %%
 
 
+# ------------------------------Extracting data from the model simulation for further analysis----------------------------------------
 def get_values(model):
-    renShare = []
-    convGen = []
-    # curtailed = []
     renGen = []
     Prod = []
     LoH = []
@@ -404,12 +357,9 @@ def get_values(model):
     Batt_discharge = []
     FuelCell = []
     for i in range(N_HOURS):
-        renShare.append(model.renShare[i].value)
         Prod.append(model.Production[i].value)
         LoH.append(model.LOH[i].value)
         Batt.append(model.SOC[i].value)
-        convGen.append(model.conventionalGen[i].value)
-        # curtailed.append(model.curtailment[i].value)
         renGen.append(model.renGen[i].value)
         Z.append(model.z[i].value)
         Y.append(model.y[i].value)
@@ -418,41 +368,11 @@ def get_values(model):
         FuelCell.append(model.hydrogenGEN[i].value)
         Batt_charge.append(model.charge[i].value)
         Batt_discharge.append(model.discharge[i].value)
-    return renShare, convGen, renGen, Prod, LoH, Batt, Z, Y, X, Electrolyzer, FuelCell, Batt_charge, Batt_discharge
+    return renGen, Prod, LoH, Batt, Z, Y, X, Electrolyzer, FuelCell, Batt_charge, Batt_discharge
 
+renGen, Prod, LoH, Batt, Z, Y, X, Electrolyzer, FuelCell, Batt_charge, Batt_discharge = get_values(model)
 
-renShare, convGen, renGen, Prod, LoH, Batt, Z, Y, X, Electrolyzer, FuelCell, Batt_charge, Batt_discharge = get_values(
-    model)
-
-
-# def Mut_excl_Battcharge_rule(model,i):
-#         return model.charge[i] <= model.x[i] * storagePower
-#
-#     def Mut_excl_Battdischarge_rule(model,i):
-#         return model.discharge[i] <= model.y[i] * storagePower
-#
-#     def Mut_excl_H2_storagemax_rule(model,i):
-#         return model.hydrogenSTOR[i] <= model.x[i] * hydrogen_operating_Pmax
-#
-#     def Mut_excl_H2_storagemin_rule(model,i):
-#         return model.hydrogenSTOR[i] >= model.x[i] * hydrogen_operating_Pmin
-#
-#     def Mut_excl_H2_Genmax_rule(model,i):
-#         return model.hydrogenGEN[i] <= model.y[i] * hydrogen_operating_Pmax
-#
-#     def Mut_excl_H2_Genmin_rule(model,i):
-#         return model.hydrogenGEN[i] >= model.y[i] * hydrogen_operating_Pmin
-#
-#     def Mut_excl_H2_eleflow_rule(model,i):
-#         return model.electrolyzerFlow[i] <= model.x[i] * hydrogen_tank_capacity
-#
-#     def Mut_excl_H2_fuelcellflow_rule(model,i):
-#         return model.FuelcellFlow[i] <= model.y[i] * hydrogen_tank_capacity
-#
-#     def Mut_excl_Binary1_rule(model,i):
-#         return model.x[i] + model.y[i] == 1
-
-#%% Calculating the Metrics
+# ------------------------------Calculating the Metrics-----------------------------------------------------------------------------
 
 demand = np.array(demand[:N_HOURS]) /1000
 
