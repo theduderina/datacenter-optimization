@@ -385,7 +385,7 @@ except OSError:
     # Ignore error if folder already exists
     pass
 
-plot_results(Prod=Prod,
+plot_results(Prod=Prod[1:],
              demand=demand,
              renGen=renGen,
              Electrolyzer=Electrolyzer,
