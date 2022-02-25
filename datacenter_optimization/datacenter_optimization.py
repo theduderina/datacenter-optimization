@@ -102,14 +102,14 @@ demand = np.array(
 GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T,
                       columns=["pv in kW", "wind in kW", "demand in kW"])
 
-# create output folder
-try:
-    os.mkdir("output")
-except OSError:
-    # Ignore error if folder already exists
-    pass
+
 
 #-------------------- Defining technology sizing, efficiency, and boundary parameters------------------------------------------
+# Defining the time-horizon for the model in weeks
+N_WEEKS = 4
+N_HOURS = N_WEEKS * 7 * 24
+print(f"Time horizon is {N_WEEKS} weeks ({N_HOURS} hours).")
+
 n_inverter = 0.8
 #Battery
 self_discharge_rate = 0.002  # derived from 5% in 24h: https://batteryuniversity.com/article/bu-802b-what-does-elevated-self-discharge-do
@@ -125,28 +125,27 @@ SOCmax = 0.9 * storageCapacity  #
 hydrogen_operating_Pmin = 0  #MW
 hydrogen_operating_Pmax = 5  #MW
 H2_electrolyzer_eff = 0.6  #TODO Values TO_BE_CHECKED
-HHV_H2 = 197  #MWh/kg for 50000Kg H2 found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
+
+# found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
+HHV_H2 = 197  # MWh/kg for 50000Kg H2 
 
 #H2_fuel cell = Hydrogen generation
 hydrogen_powerGen_max = 5  #MW
 H2_fuelcell_eff = 0.68
-LHV_H2 = 167  #MWh/kg for 50000Kg H2 found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
+
+# found on https://h2tools.org/hyarc/calculator-tools/lower-and-higher-heating-values-fuels
+LHV_H2 = 167  # MWh/kg for 50000Kg H2 
 
 #Hydrogen tank
 hydrogen_tank_capacity = 5000  #kg
 
 # relax factor for achieving 85% of demand
 rf = 0.85
-#----------------------Initiating for defining time-horizon--------------------------------------------------------------------
+#----------------------Initiating for defining time-horizon--------------------
 # for calculating the time for running the model for specific time-horizon
 start_time = time.time()
 
-# Defining the time-horizon for the model in weeks
-N_WEEKS = 4
-N_HOURS = N_WEEKS * 7 * 24
-print(f"Time horizon is {N_WEEKS} weeks ({N_HOURS} hours).")
-
-# ------------------------------Defining Optimization function------------------------------------------------------------------
+# ------------------------------Defining Optimization function-----------------
 def RenGen_MaxOpt(GenDem):
 
     #model type: Concrete as the coefficients of the objective function are specified here
@@ -331,14 +330,14 @@ def RenGen_MaxOpt(GenDem):
     return model
 
 
-# ------------------------------Running Optimization function with PV, Wind and demand data----------------------------------------
+# ---Running Optimization function with PV, Wind and demand data---------------
 model = RenGen_MaxOpt(GenDem)
 
 # Printing model run time
 print("--%s mins--" % (time.time() - start_time))
 
 
-# ------------------------------Extracting data from the model simulation for further analysis----------------------------------------
+# ---Extracting data from the model simulation for further analysis------------
 def get_values(model):
     renGen = []
     Prod = []
@@ -389,7 +388,14 @@ print(f"ure = {ure}")
 pep = (np.sum(np.minimum(Prod, demand))) / np.sum(demand)
 print(f"pep = {pep}")
 
-# Plotting results
+# ------------------------------ Plotting results -----------------------------
+# create output folder
+try:
+    os.mkdir("output")
+except OSError:
+    # Ignore error if folder already exists
+    pass
+
 plot_gendem(pv, wind, demand)
 plot_gen(GenDem, Prod)
 plot_FuelCell(FuelCell)
