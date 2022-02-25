@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 
 
 @mpltex.acs_decorator
-def plot_gendem(pv, wind, demand):
+def plot_gendem(GenDem, pv, wind, demand):
     """Plot pv, wind and datacenter-demand."""
     fig, ax = plt.subplots()
 
     ax.set_title('Renewables Generation and Datacenter Demand')
 
-    ax.plot(demand.index, pv, label='PV generation')
-    ax.plot(demand.index, wind, label='Wind generation')
-    ax.plot(demand.index, demand, label='datacenter demand')
+    ax.plot(GenDem.index, pv, label='PV generation')
+    ax.plot(GenDem.index, wind, label='Wind generation')
+    ax.plot(GenDem.index, demand, label='datacenter demand')
 
     ax.set_xlabel("Hours")
     ax.set_ylabel('Power[kW]')
@@ -106,6 +106,7 @@ def plot_prod(Prod, renGen):
     ax.set_ylabel('Power[MW]')
     ax.legend()
     ax.minorticks_on()
+    #ax.set_ylim(597000,600100)
 
     fig.tight_layout()
     fig.savefig("output/prod.pdf", transparent=True, bbox_inches="tight")
