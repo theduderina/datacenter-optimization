@@ -108,7 +108,6 @@ def plot_prod(Prod, renGen):
     ax.set_ylabel('Power[MW]')
     ax.legend()
     ax.minorticks_on()
-    #ax.set_ylim(597000,600100)
 
     fig.tight_layout()
     fig.savefig("output/prod.pdf", transparent=True, bbox_inches="tight")

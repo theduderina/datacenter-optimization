@@ -23,8 +23,14 @@ from plots import (
     plot_prod,
     plot_loh,
     plot_Electrolyzer,
+<<<<<<< HEAD
     plot_FuelCell
 )
+=======
+    plot_FuelCell,
+    plot_Batt)
+
+>>>>>>> ef090a89b37db6e7f1543ed532f307c41745646c
 from utils import INPUT_PATH, utcfromtimestamp
 
 # %% Import weather and demand data
@@ -384,13 +390,11 @@ print(f"ure = {ure}")
 pep = (np.sum(np.minimum(Prod, demand))) / np.sum(demand)
 print(f"pep = {pep}")
 
-
 # Plotting results
 plot_gendem(pv, wind, demand)
-plot_gen(demand, Prod)
+plot_gen(GenDem, Prod)
 plot_FuelCell(FuelCell)
 plot_Electrolyzer(Electrolyzer)
 plot_prod(Prod, renGen)
 plot_loh(LoH)
 plot_batt(Batt, Batt_charge ,Batt_discharge)
-
