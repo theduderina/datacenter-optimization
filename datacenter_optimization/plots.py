@@ -17,9 +17,9 @@ def plot_gendem(pv, wind, demand):
 
     ax.set_title('Renewables Generation and Datacenter Demand')
 
-    ax.plot(demand.index, pv, label='PV generation')
-    ax.plot(demand.index, wind, label='Wind generation')
-    ax.plot(demand.index, demand, label='datacenter demand')
+    ax.plot(pv, label='PV generation')
+    ax.plot(wind, label='Wind generation')
+    ax.plot(demand, label='datacenter demand')
 
     ax.set_xlabel("Hours")
     ax.set_ylabel('Power[kW]')

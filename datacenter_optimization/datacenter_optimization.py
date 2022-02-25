@@ -109,10 +109,6 @@ except OSError:
     # Ignore error if folder already exists
     pass
 
-# Plot pv, wind and datacenter-demand
-#@mpltex.acs_decorator #commenting  the tex command to avoid errors in case of unavailabilty of LaTEX language
-plot_gendem(GenDem, pv, wind, demand)
-
 #-------------------- Defining technology sizing, efficiency, and boundary parameters------------------------------------------
 n_inverter = 0.8
 #Battery
@@ -393,7 +389,6 @@ print(f"ure = {ure}")
 pep = (np.sum(np.minimum(Prod, demand))) / np.sum(demand)
 print(f"pep = {pep}")
 
-
 # Plotting results
 plot_gendem(pv, wind, demand)
 plot_gen(GenDem, Prod)
@@ -404,4 +399,3 @@ plot_batt_discharge(Batt_discharge)
 plot_prod(Prod, renGen)
 plot_loh(LoH)
 plot_Batt(Batt)
-
