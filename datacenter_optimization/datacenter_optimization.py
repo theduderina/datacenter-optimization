@@ -16,22 +16,14 @@ import pandas as pd  # import pandas to work with dataframes
 import pyomo.environ as pyo
 from pyomo.opt import SolverFactory
 
-from plots import (
-    plot_gendem,
-    plot_batt,
-    plot_gen,
-    plot_prod,
-    plot_loh,
-    plot_Electrolyzer,
-<<<<<<< HEAD
-    plot_FuelCell
-)
-=======
-    plot_FuelCell,
-    plot_Batt)
+from plots import plot_results
 
->>>>>>> ef090a89b37db6e7f1543ed532f307c41745646c
 from utils import INPUT_PATH, utcfromtimestamp
+
+# Defining the time-horizon for the model in weeks
+N_WEEKS = 4
+N_HOURS = N_WEEKS * 7 * 24
+print(f"Time horizon is {N_WEEKS} weeks ({N_HOURS} hours).")
 
 # %% Import weather and demand data
 
@@ -103,14 +95,7 @@ demand = np.array(
 GenDem = pd.DataFrame(np.vstack([pv, wind, demand]).T,
                       columns=["pv in kW", "wind in kW", "demand in kW"])
 
-
-
 #-------------------- Defining technology sizing, efficiency, and boundary parameters------------------------------------------
-# Defining the time-horizon for the model in weeks
-N_WEEKS = 4
-N_HOURS = N_WEEKS * 7 * 24
-print(f"Time horizon is {N_WEEKS} weeks ({N_HOURS} hours).")
-
 n_inverter = 0.8
 #Battery
 self_discharge_rate = 0.002  # derived from 5% in 24h: https://batteryuniversity.com/article/bu-802b-what-does-elevated-self-discharge-do
@@ -369,7 +354,10 @@ renGen, Prod, LoH, Batt, Z, Y, X, Electrolyzer, FuelCell, Batt_charge, Batt_disc
 
 # ------------------------------Calculating the Metrics-----------------------------------------------------------------------------
 
-demand = np.array(demand[:N_HOURS]) /1000
+demand = np.array(demand[:N_HOURS]) / 1000
+Batt_discharge = np.array(Batt_discharge)
+FuelCell = np.array(FuelCell)
+Electrolyzer = np.array(Electrolyzer)
 
 # Loss of Power Supply Probability (LPSP)
 lpsp = np.sum(np.array(Prod) < demand) / N_HOURS
@@ -397,10 +385,12 @@ except OSError:
     # Ignore error if folder already exists
     pass
 
-plot_gendem(pv, wind, demand)
-plot_gen(GenDem, Prod)
-plot_FuelCell(FuelCell)
-plot_Electrolyzer(Electrolyzer)
-plot_prod(Prod, renGen)
-plot_loh(LoH)
-plot_batt(Batt, Batt_charge ,Batt_discharge)
+plot_results(Prod=Prod,
+             demand=demand,
+             renGen=renGen,
+             Electrolyzer=Electrolyzer,
+             FuelCell=-FuelCell,
+             Batt_charge=Batt_charge,
+             Batt_discharge=-Batt_discharge,
+             LoH=LoH,
+             Batt=Batt)
