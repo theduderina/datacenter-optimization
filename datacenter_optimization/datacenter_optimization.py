@@ -3,9 +3,6 @@
 """
 Datacenter optimization.
 
-Aim: Find the optimized capacity of solar, on-shore and off-shore wind
-to achieve the maximum renewable energy share.
-
 Student name: Jay Bhavesh Doshi , Anna Lebowsky
 Student matriculation number: 4963577 , 5143788
 """
@@ -21,15 +18,19 @@ from pyomo.opt import SolverFactory
 
 from plots import (
     plot_gendem,
-    plot_batt_charge,
-    plot_batt_discharge,
+    plot_batt,
     plot_gen,
     plot_prod,
     plot_loh,
     plot_Electrolyzer,
+<<<<<<< HEAD
+    plot_FuelCell
+)
+=======
     plot_FuelCell,
     plot_Batt)
 
+>>>>>>> ef090a89b37db6e7f1543ed532f307c41745646c
 from utils import INPUT_PATH, utcfromtimestamp
 
 # %% Import weather and demand data
@@ -400,8 +401,6 @@ plot_gendem(pv, wind, demand)
 plot_gen(GenDem, Prod)
 plot_FuelCell(FuelCell)
 plot_Electrolyzer(Electrolyzer)
-plot_batt_charge(Batt_charge)
-plot_batt_discharge(Batt_discharge)
 plot_prod(Prod, renGen)
 plot_loh(LoH)
-plot_Batt(Batt)
+plot_batt(Batt, Batt_charge ,Batt_discharge)

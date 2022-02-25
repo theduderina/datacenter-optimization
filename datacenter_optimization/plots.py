@@ -33,21 +33,23 @@ def plot_gendem(pv, wind, demand):
 
 
 @mpltex.acs_decorator
-def plot_batt_charge(Batt_charge):
+def plot_batt(Batt_charge, Batt_discharge):
     fig, ax = plt.subplots()
 
-    ax.set_title('Battery Charging')
+    ax.set_title('Battery Charging and Discharging')
 
-    ax.plot(Batt_charge, marker='o')
+    ax.plot(Batt_charge, label='charging')
+    ax.plot(Batt_discharge, label='discharging')
 
     ax.set_xlabel("Hours")
-    ax.set_ylabel('Power[MW]')
+    ax.set_ylabel('Power in MW')
+    ax.legend()
 
     ax.minorticks_on()
     ax.set_xlim(-10, )
 
     fig.tight_layout()
-    fig.savefig("output/batt_charge.pdf", transparent=True, bbox_inches="tight")
+    fig.savefig("output/batt.pdf", transparent=True, bbox_inches="tight")
     fig.show()
 
 
@@ -170,20 +172,4 @@ def plot_FuelCell(FuelCell):
     fig.show()
 
 
-@mpltex.acs_decorator
-def plot_Batt(Batt):
-    fig, ax = plt.subplots()
 
-    ax.set_title('Battery')
-
-    ax.plot(Batt)
-
-    ax.set_xlabel("Hours")
-    ax.set_ylabel('Power[MW]')
-    ax.legend()
-    ax.minorticks_on()
-    ax.set_xlim(-10, )
-
-    fig.tight_layout()
-    fig.savefig("output/Battery.pdf", transparent=True, bbox_inches="tight")
-    fig.show()
