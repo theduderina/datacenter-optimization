@@ -395,13 +395,14 @@ pep = (np.sum(np.minimum(Prod, demand))) / np.sum(demand)
 print(f"pep = {pep}")
 
 
-#%% Plotting renShare, convGen, curtailed, renGen, Prod, LoH, Batt
-plot_FuelCell(FuelCell)
+# Plotting results
+plot_gendem(GenDem, pv, wind, demand)
 plot_gen(GenDem, Prod)
+plot_FuelCell(FuelCell)
+plot_Electrolyzer(Electrolyzer)
 plot_batt_charge(Batt_charge)
 plot_batt_discharge(Batt_discharge)
 plot_prod(Prod, renGen)
 plot_loh(LoH)
-plot_Electrolyzer(Electrolyzer)
 plot_Batt(Batt)
-plot_renshare(renShare)
+
